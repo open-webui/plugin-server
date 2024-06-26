@@ -8,7 +8,6 @@ from fastapi import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 from openai.types import FileObject, FileDeleted
-from pydantic import BaseModel
 
 from utils.pipelines.auth import get_current_user
 
@@ -53,6 +52,66 @@ async def delete_file(file_id: str,
             object="file",
             deleted=True
         )
+    except Exception as e:
+        print(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"{str(e)}",
+        )
+
+
+@app.get("/{file_id}/content")
+async def get_file_content(file_id: str,
+                           user: str = Depends(get_current_user)):
+    try:
+        return "file-content"
+    except Exception as e:
+        print(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"{str(e)}",
+        )
+
+
+@app.get("/{file_id}")
+async def retrieve_file(file_id: str,
+                        user: str = Depends(get_current_user)):
+    try:
+        return FileObject(
+            id=file_id,
+            object="file",
+            bytes=120000,
+            created_at=1677610602,
+            filename="file.filename",
+            purpose="assistants",
+            status="uploaded"
+        )
+
+    except Exception as e:
+        print(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"{str(e)}",
+        )
+
+
+@app.get("/")
+async def list_files(
+        purpose: str | None = None,
+        user: str = Depends(get_current_user)
+
+):
+    try:
+        return {"data": [FileObject(
+            id="file-id",
+            object="file",
+            bytes=120000,
+            created_at=1677610602,
+            filename="file.filename",
+            purpose="assistants",
+            status="uploaded"
+        )]}
+
     except Exception as e:
         print(e)
         raise HTTPException(

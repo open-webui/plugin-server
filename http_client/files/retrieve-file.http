@@ -1,0 +1,5 @@
+###
+GET http://localhost:9099/v1/files/123
+Authorization: Bearer 0p3n-w3bu!
+
+
