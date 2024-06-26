@@ -1,0 +1,11 @@
+POST http://localhost:9099/v1/vector_stores
+Authorization: Bearer 0p3n-w3bu!
+Content-Type: application/json
+
+{
+  "file_ids": ["1"],
+  "name": "my-vector-store",
+  "metadata": {
+    "application": "open-web-ui"
+  }
+}

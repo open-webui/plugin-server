@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request, Depends, status, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.concurrency import run_in_threadpool
 from apps.files.main import app as files_app
+from apps.vector_store.main import app as vector_stores_app
 
 from starlette.responses import StreamingResponse, Response
 from pydantic import BaseModel, ConfigDict
@@ -216,6 +217,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(docs_url="/docs", redoc_url=None, lifespan=lifespan)
 
 app.mount("/v1/files", files_app)
+app.mount("/v1/vector_stores", vector_stores_app)
 
 app.state.PIPELINES = PIPELINES
 

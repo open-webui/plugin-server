@@ -7,7 +7,7 @@ from fastapi import (
     Depends,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from openai.types import FileObject
+from openai.types import FileObject, FileDeleted
 from pydantic import BaseModel
 
 from utils.pipelines.auth import get_current_user
@@ -22,13 +22,9 @@ app.add_middleware(
 )
 
 
-class UploadFileForm(BaseModel):
-    purpose: str
-
-
 @app.post("/")
 async def upload_file(purpose: Annotated[str, Form()],
-                      file: Annotated[UploadFile, File()], 
+                      file: Annotated[UploadFile, File()],
                       user: str = Depends(get_current_user)):
     try:
         return FileObject(
@@ -39,6 +35,23 @@ async def upload_file(purpose: Annotated[str, Form()],
             filename="file.filename",
             purpose=purpose,
             status="uploaded"
+        )
+    except Exception as e:
+        print(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"{str(e)}",
+        )
+
+
+@app.delete("/{file_id}")
+async def delete_file(file_id: str,
+                      user: str = Depends(get_current_user)):
+    try:
+        return FileDeleted(
+            id=file_id,
+            object="file",
+            deleted=True
         )
     except Exception as e:
         print(e)
