@@ -1,9 +1,8 @@
 import logging
-import time
-from typing import List, Optional
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import Column, String, LargeBinary
+from sqlalchemy import Column, String, LargeBinary, ForeignKey
 
 from apps.openai.internal.db import Base, Session
 
@@ -18,8 +17,8 @@ log = logging.getLogger(__name__)
 class FileContent(Base):
     __tablename__ = "file_content"
 
-    id = Column(String, primary_key=True)
-    content = Column(LargeBinary)
+    id = Column(String, ForeignKey("file.id", ondelete='CASCADE'), primary_key=True)
+    content = Column(LargeBinary, nullable=False)
 
 
 class FileContentModel(BaseModel):
@@ -65,7 +64,15 @@ class FileContentsTable:
             else:
                 return None
         except Exception as e:
-            print(f"Error creating tool: {e}")
+            print(f"Error inserting file content: {e}")
+            return None
+
+    def get_file_content(self, file_id: str) -> bytes:
+        try:
+            file_content = Session.get(FileContent, file_id)
+            return file_content.content
+        except Exception as e:
+            print(f"Error getting file content: {e}")
             return None
 
 

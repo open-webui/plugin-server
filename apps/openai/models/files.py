@@ -6,10 +6,13 @@ import time
 import logging
 
 from sqlalchemy import Column, String, BigInteger, Text
+from sqlalchemy.orm import relationship
 
 from apps.openai.internal.db import JSONField, Base, Session
 
 import json
+
+from apps.openai.models.file_contents import FileContent
 
 log = logging.getLogger(__name__)
 
@@ -30,6 +33,8 @@ class File(Base):
     purpose = Column(Text, nullable=False)
     status = Column(Text, nullable=False)
     meta = Column(JSONField, nullable=True)
+
+    file_content = relationship(FileContent, backref="file", passive_deletes=True)
 
 
 class FileModel(BaseModel):
@@ -81,7 +86,7 @@ class FilesTable:
             else:
                 return None
         except Exception as e:
-            print(f"Error creating tool: {e}")
+            print(f"Error inserting new file: {e}")
             return None
 
     def get_file_by_id(self, id: str) -> Optional[FileModel]:
@@ -94,9 +99,10 @@ class FilesTable:
     def get_files(self) -> List[FileModel]:
         return [FileModel.model_validate(file) for file in Session.query(File).all()]
 
-    def delete_file_by_id(self, id: str) -> bool:
+    def delete_file_by_id(self, file_id: str) -> bool:
         try:
-            Session.query(File).filter_by(id=id).delete()
+            Session.query(File).filter_by(id=file_id).delete()
+            Session.commit()
             return True
         except:
             return False
@@ -104,6 +110,7 @@ class FilesTable:
     def delete_all_files(self) -> bool:
         try:
             Session.query(File).delete()
+            Session.commit()
             return True
         except:
             return False

@@ -55,11 +55,11 @@ async def upload_file(purpose: Annotated[str, Form()],
 async def delete_file(file_id: str,
                       user: str = Depends(get_current_user)):
     try:
-        Files.delete_file_by_id(file_id)
+        deleted = Files.delete_file_by_id(file_id)
         return FileDeleted(
             id=file_id,
             object="file",
-            deleted=True
+            deleted=deleted
         )
     except Exception as e:
         print(e)
@@ -73,7 +73,7 @@ async def delete_file(file_id: str,
 async def get_file_content(file_id: str,
                            user: str = Depends(get_current_user)):
     try:
-        return "file-content"
+        return FileContents.insert_file_content()
     except Exception as e:
         print(e)
         raise HTTPException(
