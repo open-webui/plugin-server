@@ -1,3 +1,6 @@
+import time
+from uuid import uuid4
+
 from fastapi import FastAPI
 from fastapi import (
     HTTPException,
@@ -11,6 +14,7 @@ from openai.types.beta.vector_store_deleted import VectorStoreDeleted
 from openai.types.beta.vector_stores import VectorStoreFile, VectorStoreFileDeleted
 from pydantic import BaseModel
 
+from apps.openai.models.vector_stores import VectorStores, VectorStoreModel
 from utils.pipelines.auth import get_current_user
 
 app = FastAPI()
@@ -37,11 +41,17 @@ class StaticChunkingStrategyForm(BaseModel):
     static: StaticForm
 
 
+class ExpiresAfterForm(BaseModel):
+    anchor: str
+    days: int
+
+
 class CreateVectorStoreForm(BaseModel):
-    file_ids: list[str] | None
-    name: str | None
+    file_ids: list[str] | None = None
+    name: str | None = None
     chunking_strategy: StaticChunkingStrategyForm | AutoChunkingStrategyForm | None = None
-    metadata: dict | None
+    metadata: dict | None = None
+    expires_after: ExpiresAfterForm | None = None
 
 
 class CreateVectorStoreFileForm(BaseModel):
@@ -58,15 +68,19 @@ class ModifyVectorStoreForm(BaseModel):
 async def create_vector_store(form_data: CreateVectorStoreForm,
                               user: str = Depends(get_current_user)):
     try:
-        return VectorStore(
-            id="store-123",
-            created_at=561651,
-            file_counts=FileCounts(cancelled=1, completed=1, failed=1, in_progress=1, total=1),
-            name=form_data.name,
-            object="vector_store",
-            status="completed",
-            usage_bytes=123,
-            metadata=form_data.metadata,
+        return VectorStores.insert_new_vector_store(
+            VectorStoreModel(
+                id=str(uuid4()),
+                created_at=int(time.time()),
+                file_counts=0,
+                last_active_at=int(time.time()),
+                metadata=form_data.metadata,
+                name=form_data.name,
+                object="vector_store",
+                status="completed",
+                usage_bytes=0,
+                expires_after=form_data.expires_after
+            )
         )
     except Exception as e:
         print(e)

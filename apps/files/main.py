@@ -1,3 +1,4 @@
+import time
 from typing import Annotated
 from uuid import uuid4
 
@@ -8,10 +9,10 @@ from fastapi import (
     Depends,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from openai.types import FileObject, FileDeleted
+from openai.types import FileDeleted
 
 from apps.openai.models.file_contents import FileContents
-from apps.openai.models.files import Files, FileForm
+from apps.openai.models.files import Files, FileModel
 from utils.pipelines.auth import get_current_user
 
 app = FastAPI()
@@ -31,19 +32,18 @@ async def upload_file(purpose: Annotated[str, Form()],
     try:
         file_bytes: bytes = file.file.read()
         inserted_file = Files.insert_new_file(
-            form_data=FileForm(id=str(uuid4()), bytes=len(file_bytes), filename=file.filename, purpose=purpose)
+            form_data=FileModel(
+                id=str(uuid4()),
+                bytes=len(file_bytes),
+                created_at=int(time.time()),
+                filename=file.filename,
+                object="file",
+                status="uploaded",
+                purpose=purpose)
         )
         FileContents.insert_file_content(file_id=inserted_file.id, content=file_bytes)
 
-        return FileObject(
-            id=inserted_file.id,
-            object=inserted_file.object,
-            bytes=inserted_file.bytes,
-            created_at=inserted_file.created_at,
-            filename=inserted_file.filename,
-            purpose=inserted_file.purpose,
-            status=inserted_file.status
-        )
+        return inserted_file.model_dump()
     except Exception as e:
         print(e)
         raise HTTPException(
@@ -87,9 +87,7 @@ async def get_file_content(file_id: str,
 async def retrieve_file(file_id: str,
                         user: str = Depends(get_current_user)):
     try:
-        file = Files.get_file_by_id(file_id)
-        return Files.to_file_object(file)
-
+        return Files.get_file_by_id(file_id)
     except Exception as e:
         print(e)
         raise HTTPException(
@@ -105,8 +103,7 @@ async def list_files(
 ):
     try:
         files = Files.get_files(purpose)
-        file_objects = [Files.to_file_object(file) for file in files]
-        return {"data": file_objects}
+        return {"data": files}
 
     except Exception as e:
         print(e)

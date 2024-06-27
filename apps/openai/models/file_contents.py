@@ -60,7 +60,7 @@ class FileContentsTable:
             Session.commit()
             Session.refresh(result)
             if result:
-                return FileContentModel.model_validate(result)
+                return FileContentModel.model_validate(result.__dict__)
             else:
                 return None
         except Exception as e:

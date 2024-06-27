@@ -1,7 +1,7 @@
 import logging
-import time
 from typing import List, Optional
 
+from openai.types.beta import VectorStore as VectorStoreObject
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Column, String, BigInteger, Text
 
@@ -19,33 +19,23 @@ class VectorStore(Base):
     __tablename__ = "vector_store"
 
     id = Column(String, primary_key=True)
-    user_id = Column(String)
-    filename = Column(Text)
-    meta = Column(JSONField)
-    created_at = Column(BigInteger)
+    created_at = Column(BigInteger, nullable=False)
+    file_counts = Column(BigInteger, nullable=False)
+    last_active_at = Column(BigInteger, nullable=False)
+    meta = Column("metadata", JSONField, nullable=True)
+    name = Column(Text, nullable=True)
+    object = Column(Text, nullable=False)
+    status = Column(Text, nullable=False)
+    usage_bytes = Column(BigInteger, nullable=False)
 
 
-class VectorStoreModel(BaseModel):
-    id: str
-    user_id: str
-    filename: str
-    meta: dict
-    created_at: int  # timestamp in epoch
-
+class VectorStoreModel(VectorStoreObject):
     model_config = ConfigDict(from_attributes=True)
 
 
 ####################
 # Forms
 ####################
-
-
-class VectorStoreModelResponse(BaseModel):
-    id: str
-    user_id: str
-    filename: str
-    meta: dict
-    created_at: int  # timestamp in epoch
 
 
 class VectorStoreForm(BaseModel):
@@ -56,17 +46,9 @@ class VectorStoreForm(BaseModel):
 
 class VectorStoresTable:
 
-    def insert_new_vector_store(self, user_id: str, form_data: VectorStoreForm) -> Optional[VectorStoreModel]:
-        vector_store = VectorStoreModel(
-            **{
-                **form_data.model_dump(),
-                "user_id": user_id,
-                "created_at": int(time.time()),
-            }
-        )
-
+    def insert_new_vector_store(self, form_data: VectorStoreModel) -> Optional[VectorStoreModel]:
         try:
-            result = VectorStore(**vector_store.model_dump())
+            result = VectorStore(**form_data.model_dump())
             Session.add(result)
             Session.commit()
             Session.refresh(result)
@@ -75,7 +57,7 @@ class VectorStoresTable:
             else:
                 return None
         except Exception as e:
-            print(f"Error creating tool: {e}")
+            print(f"Error inserting vector store: {e}")
             return None
 
     def get_vector_store_by_id(self, id: str) -> Optional[VectorStoreModel]:
