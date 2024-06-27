@@ -7,6 +7,9 @@ from sqlalchemy import pool
 from alembic import context
 
 from apps.openai.models.files import File
+from apps.openai.models.file_contents import FileContents
+from apps.openai.models.vector_store_files import VectorStoreFiles
+from apps.openai.models.vector_stores import VectorStores
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

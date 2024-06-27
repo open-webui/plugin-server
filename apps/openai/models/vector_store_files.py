@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 
 
 class VectorStoreFile(Base):
-    __tablename__ = "file"
+    __tablename__ = "vector_store_file"
 
     id = Column(String, primary_key=True)
     user_id = Column(String)
@@ -41,7 +41,7 @@ class VectorStoreFileModel(BaseModel):
 ####################
 
 
-class FileModelResponse(BaseModel):
+class VectorStoreFileModelResponse(BaseModel):
     id: str
     user_id: str
     filename: str
@@ -49,16 +49,16 @@ class FileModelResponse(BaseModel):
     created_at: int  # timestamp in epoch
 
 
-class FileForm(BaseModel):
+class VectorStoreFileForm(BaseModel):
     id: str
     filename: str
     meta: dict = {}
 
 
-class FilesTable:
+class VectorStoreFilesTable:
 
-    def insert_new_file(self, user_id: str, form_data: FileForm) -> Optional[FileModel]:
-        file = FileModel(
+    def insert_new_vector_store_file(self, user_id: str, form_data: VectorStoreFileForm) -> Optional[VectorStoreFileModel]:
+        file = VectorStoreFileModel(
             **{
                 **form_data.model_dump(),
                 "user_id": user_id,
@@ -67,41 +67,41 @@ class FilesTable:
         )
 
         try:
-            result = File(**file.model_dump())
+            result = VectorStoreFile(**file.model_dump())
             Session.add(result)
             Session.commit()
             Session.refresh(result)
             if result:
-                return FileModel.model_validate(result)
+                return VectorStoreFileModel.model_validate(result)
             else:
                 return None
         except Exception as e:
             print(f"Error creating tool: {e}")
             return None
 
-    def get_file_by_id(self, id: str) -> Optional[FileModel]:
+    def get_vector_store_file_by_id(self, id: str) -> Optional[VectorStoreFileModel]:
         try:
-            file = Session.get(File, id)
-            return FileModel.model_validate(file)
+            vector_store_file = Session.get(VectorStoreFile, id)
+            return VectorStoreFileModel.model_validate(vector_store_file)
         except:
             return None
 
-    def get_files(self) -> List[FileModel]:
-        return [FileModel.model_validate(file) for file in Session.query(File).all()]
+    def get_vector_store_files(self) -> List[VectorStoreFileModel]:
+        return [VectorStoreFileModel.model_validate(vector_store_file) for vector_store_file in Session.query(VectorStoreFile).all()]
 
-    def delete_file_by_id(self, id: str) -> bool:
+    def delete_vector_store_file_by_id(self, id: str) -> bool:
         try:
-            Session.query(File).filter_by(id=id).delete()
+            Session.query(VectorStoreFile).filter_by(id=id).delete()
             return True
         except:
             return False
 
-    def delete_all_files(self) -> bool:
+    def delete_all_vector_store_files(self) -> bool:
         try:
-            Session.query(File).delete()
+            Session.query(VectorStoreFile).delete()
             return True
         except:
             return False
 
 
-Files = FilesTable()
+VectorStoreFiles = VectorStoreFilesTable()

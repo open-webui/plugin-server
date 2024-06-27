@@ -28,12 +28,6 @@ class StaticForm(BaseModel):
     chunk_overlap_tokens: int
 
 
-class CreateVectorStoreForm(BaseModel):
-    file_ids: list[str] | None
-    name: str | None
-    metadata: dict | None
-
-
 class AutoChunkingStrategyForm(BaseModel):
     type: str = "auto"
 
@@ -41,6 +35,13 @@ class AutoChunkingStrategyForm(BaseModel):
 class StaticChunkingStrategyForm(BaseModel):
     type: str = "static"
     static: StaticForm
+
+
+class CreateVectorStoreForm(BaseModel):
+    file_ids: list[str] | None
+    name: str | None
+    chunking_strategy: StaticChunkingStrategyForm | AutoChunkingStrategyForm | None = None
+    metadata: dict | None
 
 
 class CreateVectorStoreFileForm(BaseModel):

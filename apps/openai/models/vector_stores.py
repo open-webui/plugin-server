@@ -1,15 +1,14 @@
-from pydantic import BaseModel, ConfigDict
-from typing import List, Union, Optional
-import time
 import logging
+import time
+from typing import List, Optional
 
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Column, String, BigInteger, Text
 
 from apps.openai.internal.db import JSONField, Base, Session
 
-import json
-
 log = logging.getLogger(__name__)
+
 
 ####################
 # Files DB Schema
@@ -17,7 +16,7 @@ log = logging.getLogger(__name__)
 
 
 class VectorStore(Base):
-    __tablename__ = "file"
+    __tablename__ = "vector_store"
 
     id = Column(String, primary_key=True)
     user_id = Column(String)
@@ -41,7 +40,7 @@ class VectorStoreModel(BaseModel):
 ####################
 
 
-class FileModelResponse(BaseModel):
+class VectorStoreModelResponse(BaseModel):
     id: str
     user_id: str
     filename: str
@@ -49,16 +48,16 @@ class FileModelResponse(BaseModel):
     created_at: int  # timestamp in epoch
 
 
-class FileForm(BaseModel):
+class VectorStoreForm(BaseModel):
     id: str
     filename: str
     meta: dict = {}
 
 
-class FilesTable:
+class VectorStoresTable:
 
-    def insert_new_file(self, user_id: str, form_data: FileForm) -> Optional[FileModel]:
-        file = FileModel(
+    def insert_new_vector_store(self, user_id: str, form_data: VectorStoreForm) -> Optional[VectorStoreModel]:
+        vector_store = VectorStoreModel(
             **{
                 **form_data.model_dump(),
                 "user_id": user_id,
@@ -67,41 +66,41 @@ class FilesTable:
         )
 
         try:
-            result = File(**file.model_dump())
+            result = VectorStore(**vector_store.model_dump())
             Session.add(result)
             Session.commit()
             Session.refresh(result)
             if result:
-                return FileModel.model_validate(result)
+                return VectorStoreModel.model_validate(result)
             else:
                 return None
         except Exception as e:
             print(f"Error creating tool: {e}")
             return None
 
-    def get_file_by_id(self, id: str) -> Optional[FileModel]:
+    def get_vector_store_by_id(self, id: str) -> Optional[VectorStoreModel]:
         try:
-            file = Session.get(File, id)
-            return FileModel.model_validate(file)
+            vector_store = Session.get(VectorStore, id)
+            return VectorStoreModel.model_validate(vector_store)
         except:
             return None
 
-    def get_files(self) -> List[FileModel]:
-        return [FileModel.model_validate(file) for file in Session.query(File).all()]
+    def get_vector_stores(self) -> List[VectorStoreModel]:
+        return [VectorStoreModel.model_validate(vector_store) for vector_store in Session.query(VectorStore).all()]
 
-    def delete_file_by_id(self, id: str) -> bool:
+    def delete_vector_store_by_id(self, id: str) -> bool:
         try:
-            Session.query(File).filter_by(id=id).delete()
+            Session.query(VectorStore).filter_by(id=id).delete()
             return True
         except:
             return False
 
-    def delete_all_files(self) -> bool:
+    def delete_all_vector_stores(self) -> bool:
         try:
-            Session.query(File).delete()
+            Session.query(VectorStore).delete()
             return True
         except:
             return False
 
 
-Files = FilesTable()
+VectorStores = VectorStoresTable()
