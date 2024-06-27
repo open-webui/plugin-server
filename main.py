@@ -1,3 +1,5 @@
+import subprocess
+
 from fastapi import FastAPI, Request, Depends, status, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.concurrency import run_in_threadpool
@@ -29,7 +31,7 @@ import uuid
 import sys
 
 
-from config import API_KEY, PIPELINES_DIR
+from config import API_KEY, PIPELINES_DIR, DATABASE_URL
 
 if not os.path.exists(PIPELINES_DIR):
     os.makedirs(PIPELINES_DIR)
@@ -183,7 +185,18 @@ async def load_modules_from_directory(directory):
     PIPELINES = get_all_pipelines()
 
 
+def run_migrations():
+    env = os.environ.copy()
+    env["DATABASE_URL"] = DATABASE_URL
+    migration_task = subprocess.run(
+        ["alembic", f"-calembic.ini", "upgrade", "head"], env=env
+    )
+    if migration_task.returncode > 0:
+        raise ValueError("Error running migrations")
+
+
 async def on_startup():
+    run_migrations()
     await load_modules_from_directory(PIPELINES_DIR)
 
     for module in PIPELINE_MODULES.values():

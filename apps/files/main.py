@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from openai.types import FileObject, FileDeleted
 
 from utils.pipelines.auth import get_current_user
+from apps.openai.models.files import Files
 
 app = FastAPI()
 app.add_middleware(
@@ -26,6 +27,7 @@ async def upload_file(purpose: Annotated[str, Form()],
                       file: Annotated[UploadFile, File()],
                       user: str = Depends(get_current_user)):
     try:
+        Files.insert_new_file()
         return FileObject(
             id="file-abc123",
             object="file",
@@ -47,6 +49,7 @@ async def upload_file(purpose: Annotated[str, Form()],
 async def delete_file(file_id: str,
                       user: str = Depends(get_current_user)):
     try:
+        Files.delete_file_by_id(file_id)
         return FileDeleted(
             id=file_id,
             object="file",
@@ -77,6 +80,7 @@ async def get_file_content(file_id: str,
 async def retrieve_file(file_id: str,
                         user: str = Depends(get_current_user)):
     try:
+        Files.get_file_by_id(file_id)
         return FileObject(
             id=file_id,
             object="file",
@@ -102,6 +106,7 @@ async def list_files(
 
 ):
     try:
+        files = Files.get_files()
         return {"data": [FileObject(
             id="file-id",
             object="file",

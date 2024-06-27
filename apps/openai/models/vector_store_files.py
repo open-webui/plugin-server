@@ -16,7 +16,7 @@ log = logging.getLogger(__name__)
 ####################
 
 
-class File(Base):
+class VectorStoreFile(Base):
     __tablename__ = "file"
 
     id = Column(String, primary_key=True)
@@ -26,7 +26,7 @@ class File(Base):
     created_at = Column(BigInteger)
 
 
-class FileModel(BaseModel):
+class VectorStoreFileModel(BaseModel):
     id: str
     user_id: str
     filename: str
