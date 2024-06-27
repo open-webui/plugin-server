@@ -9,8 +9,9 @@ from fastapi import (
 from fastapi.middleware.cors import CORSMiddleware
 from openai.types import FileObject, FileDeleted
 
+from apps.openai.models.file_contents import FileContents
+from apps.openai.models.files import Files, FileForm
 from utils.pipelines.auth import get_current_user
-from apps.openai.models.files import Files
 
 app = FastAPI()
 app.add_middleware(
@@ -27,15 +28,20 @@ async def upload_file(purpose: Annotated[str, Form()],
                       file: Annotated[UploadFile, File()],
                       user: str = Depends(get_current_user)):
     try:
-        Files.insert_new_file()
+        file_bytes: bytes = file.file.read()
+        inserted_file = Files.insert_new_file(
+            form_data=FileForm(bytes=len(file_bytes), filename=file.filename, )
+        )
+        FileContents.insert_file_content(file_id=inserted_file.id, content=file_bytes)
+
         return FileObject(
-            id="file-abc123",
-            object="file",
-            bytes=120000,
-            created_at=1677610602,
-            filename="file.filename",
-            purpose=purpose,
-            status="uploaded"
+            id=inserted_file.id,
+            object=inserted_file.object,
+            bytes=inserted_file.bytes,
+            created_at=inserted_file.created_at,
+            filename=inserted_file.filename,
+            purpose=inserted_file.purpose,
+            status=inserted_file.status
         )
     except Exception as e:
         print(e)

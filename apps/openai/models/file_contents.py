@@ -45,12 +45,12 @@ class FileForm(BaseModel):
     meta: dict = {}
 
 
-class FilesContentTable:
+class FileContentsTable:
 
-    def insert_new_file(self, id: str, content: bytes) -> Optional[FileContentModel]:
+    def insert_file_content(self, file_id: str, content: bytes) -> Optional[FileContentModel]:
         file = FileContentModel(
             **{
-                "id": id,
+                "id": file_id,
                 "content": content,
             }
         )
@@ -69,4 +69,4 @@ class FilesContentTable:
             return None
 
 
-FileContents = FilesContentTable()
+FileContents = FileContentsTable()

@@ -1,5 +1,7 @@
+from uuid import uuid4
+
 from pydantic import BaseModel, ConfigDict
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Literal
 import time
 import logging
 
@@ -11,6 +13,7 @@ import json
 
 log = logging.getLogger(__name__)
 
+
 ####################
 # Files DB Schema
 ####################
@@ -20,18 +23,24 @@ class File(Base):
     __tablename__ = "file"
 
     id = Column(String, primary_key=True)
-    user_id = Column(String)
-    filename = Column(Text)
-    meta = Column(JSONField)
-    created_at = Column(BigInteger)
+    object = Column(String, nullable=False)
+    bytes = Column(BigInteger, nullable=False)
+    created_at = Column(BigInteger, nullable=False)
+    filename = Column(Text, nullable=False)
+    purpose = Column(Text, nullable=False)
+    status = Column(Text, nullable=False)
+    meta = Column(JSONField, nullable=True)
 
 
 class FileModel(BaseModel):
     id: str
-    user_id: str
+    object: str
+    bytes: int
+    created_at: int
     filename: str
-    meta: dict
-    created_at: int  # timestamp in epoch
+    purpose: str
+    status: Literal["uploaded", "processed", "error"]
+    meta: str | None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -40,29 +49,25 @@ class FileModel(BaseModel):
 # Forms
 ####################
 
-
-class FileModelResponse(BaseModel):
-    id: str
-    user_id: str
-    filename: str
-    meta: dict
-    created_at: int  # timestamp in epoch
-
-
 class FileForm(BaseModel):
-    id: str
+    id: str = str(uuid4())
+    bytes: int
     filename: str
-    meta: dict = {}
+    meta: str | None = None  # optional field for open webui
+    purpose: Literal[
+        "assistants", "assistants_output", "batch", "batch_output", "fine-tune", "fine-tune-results", "vision"
+    ] = "assistants"
+    status: Literal["uploaded", "processed", "error"] = "uploaded"
+    object: Literal["file"] = "file"
+    created_at: int = int(time.time())
 
 
 class FilesTable:
 
-    def insert_new_file(self, user_id: str, form_data: FileForm) -> Optional[FileModel]:
+    def insert_new_file(self, form_data: FileForm) -> Optional[FileModel]:
         file = FileModel(
             **{
                 **form_data.model_dump(),
-                "user_id": user_id,
-                "created_at": int(time.time()),
             }
         )
 
