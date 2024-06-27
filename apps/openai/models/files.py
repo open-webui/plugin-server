@@ -1,17 +1,14 @@
+import logging
+import time
+from typing import List, Optional, Literal
 from uuid import uuid4
 
+from openai.types import FileObject
 from pydantic import BaseModel, ConfigDict
-from typing import List, Union, Optional, Literal
-import time
-import logging
-
 from sqlalchemy import Column, String, BigInteger, Text
 from sqlalchemy.orm import relationship
 
 from apps.openai.internal.db import JSONField, Base, Session
-
-import json
-
 from apps.openai.models.file_contents import FileContent
 
 log = logging.getLogger(__name__)
@@ -55,13 +52,13 @@ class FileModel(BaseModel):
 ####################
 
 class FileForm(BaseModel):
-    id: str = str(uuid4())
+    id: str
     bytes: int
     filename: str
     meta: str | None = None  # optional field for open webui
     purpose: Literal[
         "assistants", "assistants_output", "batch", "batch_output", "fine-tune", "fine-tune-results", "vision"
-    ] = "assistants"
+    ]
     status: Literal["uploaded", "processed", "error"] = "uploaded"
     object: Literal["file"] = "file"
     created_at: int = int(time.time())
@@ -89,15 +86,18 @@ class FilesTable:
             print(f"Error inserting new file: {e}")
             return None
 
-    def get_file_by_id(self, id: str) -> Optional[FileModel]:
+    def get_file_by_id(self, file_id: str) -> Optional[FileModel]:
         try:
-            file = Session.get(File, id)
+            file = Session.get(File, file_id)
             return FileModel.model_validate(file)
         except:
             return None
 
-    def get_files(self) -> List[FileModel]:
-        return [FileModel.model_validate(file) for file in Session.query(File).all()]
+    def get_files(self, purpose: str | None) -> List[FileModel]:
+        if purpose:
+            return [FileModel.model_validate(file) for file in Session.query(File).filter_by(purpose=purpose)]
+        else:
+            return [FileModel.model_validate(file) for file in Session.query(File).all()]
 
     def delete_file_by_id(self, file_id: str) -> bool:
         try:
@@ -114,6 +114,17 @@ class FilesTable:
             return True
         except:
             return False
+
+    def to_file_object(self, file: FileModel) -> FileObject:
+        return FileObject(
+            id=file.id,
+            object=file.object,
+            bytes=file.bytes,
+            created_at=file.created_at,
+            filename=file.filename,
+            purpose=file.purpose,
+            status=file.status
+        )
 
 
 Files = FilesTable()

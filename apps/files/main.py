@@ -1,4 +1,5 @@
 from typing import Annotated
+from uuid import uuid4
 
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi import (
@@ -30,7 +31,7 @@ async def upload_file(purpose: Annotated[str, Form()],
     try:
         file_bytes: bytes = file.file.read()
         inserted_file = Files.insert_new_file(
-            form_data=FileForm(bytes=len(file_bytes), filename=file.filename, )
+            form_data=FileForm(id=str(uuid4()), bytes=len(file_bytes), filename=file.filename, purpose=purpose)
         )
         FileContents.insert_file_content(file_id=inserted_file.id, content=file_bytes)
 
@@ -73,7 +74,7 @@ async def delete_file(file_id: str,
 async def get_file_content(file_id: str,
                            user: str = Depends(get_current_user)):
     try:
-        return FileContents.insert_file_content()
+        return FileContents.get_file_content(file_id)
     except Exception as e:
         print(e)
         raise HTTPException(
@@ -86,16 +87,8 @@ async def get_file_content(file_id: str,
 async def retrieve_file(file_id: str,
                         user: str = Depends(get_current_user)):
     try:
-        Files.get_file_by_id(file_id)
-        return FileObject(
-            id=file_id,
-            object="file",
-            bytes=120000,
-            created_at=1677610602,
-            filename="file.filename",
-            purpose="assistants",
-            status="uploaded"
-        )
+        file = Files.get_file_by_id(file_id)
+        return Files.to_file_object(file)
 
     except Exception as e:
         print(e)
@@ -109,19 +102,11 @@ async def retrieve_file(file_id: str,
 async def list_files(
         purpose: str | None = None,
         user: str = Depends(get_current_user)
-
 ):
     try:
-        files = Files.get_files()
-        return {"data": [FileObject(
-            id="file-id",
-            object="file",
-            bytes=120000,
-            created_at=1677610602,
-            filename="file.filename",
-            purpose="assistants",
-            status="uploaded"
-        )]}
+        files = Files.get_files(purpose)
+        file_objects = [Files.to_file_object(file) for file in files]
+        return {"data": file_objects}
 
     except Exception as e:
         print(e)

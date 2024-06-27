@@ -6,7 +6,7 @@ Content-Type: multipart/form-data; boundary=WebAppBoundary
 --WebAppBoundary
 Content-Disposition: form-data; name="purpose"
 
-assistants
+fine-tune
 --WebAppBoundary
 Content-Disposition: form-data; name="file"; filename="Tagesschau.txt"
 

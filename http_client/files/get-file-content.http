@@ -1,5 +1,5 @@
 ###
-GET http://localhost:9099/v1/files/123/content
+GET http://localhost:9099/v1/files/f63dd0bc-a074-4934-a020-7ef9c25ac55c/content
 Authorization: Bearer 0p3n-w3bu!
 
 
