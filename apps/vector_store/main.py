@@ -72,14 +72,14 @@ async def create_vector_store(form_data: CreateVectorStoreForm,
             VectorStoreModel(
                 id=str(uuid4()),
                 created_at=int(time.time()),
-                file_counts=0,
+                file_counts=FileCounts(cancelled=0, completed=0, failed=0, in_progress=0, total=0),
                 last_active_at=int(time.time()),
                 metadata=form_data.metadata,
                 name=form_data.name,
                 object="vector_store",
                 status="completed",
                 usage_bytes=0,
-                expires_after=form_data.expires_after
+                expires_after=form_data.expires_after,
             )
         )
     except Exception as e:
@@ -94,6 +94,7 @@ async def create_vector_store(form_data: CreateVectorStoreForm,
 async def delete_vector_store(vector_store_id: str,
                               user: str = Depends(get_current_user)):
     try:
+        VectorStores.delete_vector_store_by_id(vector_store_id)
         return VectorStoreDeleted(
             id=vector_store_id,
             deleted=True,
@@ -114,20 +115,10 @@ async def list_vector_stores(limit: int | None = None,
                              before: str | None = None,
                              user: str = Depends(get_current_user)):
     try:
+        vector_stores = VectorStores.get_vector_stores(limit, order, after, before)
         return {
             "object": "list",
-            "data": [
-                VectorStore(
-                    id="store-123",
-                    created_at=561651,
-                    file_counts=FileCounts(cancelled=1, completed=1, failed=1, in_progress=1, total=1),
-                    name="asdf",
-                    object="vector_store",
-                    status="completed",
-                    usage_bytes=123,
-                    metadata={},
-                )
-            ]
+            "data": vector_stores
         }
     except Exception as e:
         print(e)
@@ -141,17 +132,7 @@ async def list_vector_stores(limit: int | None = None,
 async def retrieve_vector_store(vector_store_id: str,
                                 user: str = Depends(get_current_user)):
     try:
-        return VectorStore(
-            id=vector_store_id,
-            created_at=561651,
-            file_counts=FileCounts(cancelled=1, completed=1, failed=1, in_progress=1, total=1),
-            name="asdf",
-            object="vector_store",
-            status="completed",
-            usage_bytes=123,
-            metadata={},
-        )
-
+        return VectorStores.get_vector_store_by_id(vector_store_id)
     except Exception as e:
         print(e)
         raise HTTPException(

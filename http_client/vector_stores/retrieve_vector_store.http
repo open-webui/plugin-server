@@ -1,3 +1,3 @@
-GET http://localhost:9099/v1/vector_stores/123
+GET http://localhost:9099/v1/vector_stores/b5aa2c94-7a43-4a73-9a1b-c8af2180f7f2
 Authorization: Bearer 0p3n-w3bu!
 Content-Type: application/json
