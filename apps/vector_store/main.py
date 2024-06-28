@@ -8,12 +8,14 @@ from fastapi import (
     Depends,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from openai.types.beta import VectorStore
 from openai.types.beta.vector_store import FileCounts
 from openai.types.beta.vector_store_deleted import VectorStoreDeleted
 from openai.types.beta.vector_stores import VectorStoreFile, VectorStoreFileDeleted
+from openai.types.beta.vector_stores.vector_store_file import ChunkingStrategyStatic, ChunkingStrategyStaticStatic, \
+    ChunkingStrategyOther
 from pydantic import BaseModel
 
+from apps.openai.models.vector_store_files import VectorStoreFiles, VectorStoreFileModel
 from apps.openai.models.vector_stores import VectorStores, VectorStoreModel
 from utils.pipelines.auth import get_current_user
 
@@ -141,28 +143,29 @@ async def retrieve_vector_store(vector_store_id: str,
         )
 
 
-@app.post("/{vector_store_id}")
-async def modify_vector_store(vector_store_id: str,
-                              form_data: ModifyVectorStoreForm,
-                              user: str = Depends(get_current_user)):
-    try:
-        return VectorStore(
-            id=vector_store_id,
-            created_at=561651,
-            file_counts=FileCounts(cancelled=1, completed=1, failed=1, in_progress=1, total=1),
-            name=form_data.name,
-            object="vector_store",
-            status="completed",
-            usage_bytes=123,
-            metadata=form_data.metadata,
-        )
-
-    except Exception as e:
-        print(e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"{str(e)}",
-        )
+# Todo
+# @app.post("/{vector_store_id}")
+# async def modify_vector_store(vector_store_id: str,
+#                               form_data: ModifyVectorStoreForm,
+#                               user: str = Depends(get_current_user)):
+#     try:
+#         return VectorStore(
+#             id=vector_store_id,
+#             created_at=561651,
+#             file_counts=FileCounts(cancelled=1, completed=1, failed=1, in_progress=1, total=1),
+#             name=form_data.name,
+#             object="vector_store",
+#             status="completed",
+#             usage_bytes=123,
+#             metadata=form_data.metadata,
+#         )
+# 
+#     except Exception as e:
+#         print(e)
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail=f"{str(e)}",
+#         )
 
 
 @app.post("/{vector_store_id}/files")
@@ -170,16 +173,24 @@ async def create_vector_store_file(vector_store_id: str,
                                    form_data: CreateVectorStoreFileForm,
                                    user: str = Depends(get_current_user)):
     try:
-        return VectorStoreFile(
-            id="123",
-            vector_store_id=vector_store_id,
-            created_at=123456,
+        if form_data.chunking_strategy is not None and form_data.chunking_strategy.type == "static":
+            chunking_strategy = ChunkingStrategyStatic(type="static",
+                                                       static=ChunkingStrategyStaticStatic(
+                                                           chunk_overlap_tokens=form_data.chunking_strategy.static.chunk_overlap_tokens,
+                                                           max_chunk_size_tokens=form_data.chunking_strategy.static.max_chunk_size_tokens,
+                                               ))
+        else:
+            chunking_strategy = ChunkingStrategyOther()
+        model = VectorStoreFileModel(
+            id=str(uuid4()),
+            created_at=int(time.time()),
             object="vector_store.file",
-            status="completed",
-            usage_bytes=1234,
-            chunking_strategy=form_data.chunking_strategy.model_dump()
+            status="in_progress",
+            usage_bytes=0,
+            vector_store_id=vector_store_id,
+            chunking_strategy=chunking_strategy,
         )
-
+        return VectorStoreFiles.insert_new_vector_store_file(vector_store_id, model)
     except Exception as e:
         print(e)
         raise HTTPException(
@@ -189,10 +200,11 @@ async def create_vector_store_file(vector_store_id: str,
 
 
 @app.delete("/{vector_store_id}/files/{file_id}")
-async def create_vector_store_file(vector_store_id: str,
+async def delete_vector_store_file(vector_store_id: str,
                                    file_id: str,
                                    user: str = Depends(get_current_user)):
     try:
+        VectorStoreFiles.delete_vector_store_file_by_id(file_id)
         return VectorStoreFileDeleted(
             id=file_id,
             deleted=True,

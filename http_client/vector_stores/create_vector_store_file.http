@@ -1,9 +1,9 @@
-POST http://localhost:9099/v1/vector_stores/123/files
+POST http://localhost:9099/v1/vector_stores/692673fd-00c9-487f-938f-2cb0f3b9f3dd/files
 Authorization: Bearer 0p3n-w3bu!
 Content-Type: application/json
 
 {
-  "file_id": "1",
+  "file_id": "94bd2d83-a2d3-49f5-af36-723f527c5a63",
   "chunking_strategy": {
     "type": "static",
     "static": {

@@ -1,15 +1,14 @@
-from pydantic import BaseModel, ConfigDict
-from typing import List, Union, Optional
-import time
 import logging
+from typing import Optional
 
+from openai.types.beta.vector_stores.vector_store_file import VectorStoreFile as VectorStoreFileObject
+from pydantic import ConfigDict
 from sqlalchemy import Column, String, BigInteger, Text
 
 from apps.openai.internal.db import JSONField, Base, Session
 
-import json
-
 log = logging.getLogger(__name__)
+
 
 ####################
 # Files DB Schema
@@ -19,55 +18,63 @@ log = logging.getLogger(__name__)
 class VectorStoreFile(Base):
     __tablename__ = "vector_store_file"
 
-    id = Column(String, primary_key=True)
-    user_id = Column(String)
     filename = Column(Text)
     meta = Column(JSONField)
-    created_at = Column(BigInteger)
+
+    id = Column(String, primary_key=True)
+    created_at = Column(BigInteger, nullable=False)
+    last_error_code = Column(Text, nullable=True)
+    last_error_message = Column(Text, nullable=True)
+    object = Column(Text, nullable=False)
+    status = Column(Text, nullable=False)
+    usage_bytes = Column(BigInteger, nullable=False)
+    vector_store_id = Column(Text, nullable=False)
+    chunking_strategy_static_static_chunk_overlap_tokens = Column(BigInteger, nullable=True)
+    chunking_strategy_static_static_max_chunk_size_tokens = Column(BigInteger, nullable=True)
+    chunking_strategy_static_type = Column(Text, nullable=True)
+    chunking_strategy_other_type = Column(Text, nullable=True)
 
 
-class VectorStoreFileModel(BaseModel):
-    id: str
-    user_id: str
-    filename: str
-    meta: dict
-    created_at: int  # timestamp in epoch
+# class ChunkingStrategyModel(ChunkingStrategy):
+#     code: Literal["internal_error", "file_not_found", "parsing_error", "unhandled_mime_type"]
+#     message: str
+# 
+# 
+# class LastErrorModel(LastError):
+#     code: Literal["internal_error", "file_not_found", "parsing_error", "unhandled_mime_type"]
+#     message: str
 
+
+class VectorStoreFileModel(VectorStoreFileObject):
     model_config = ConfigDict(from_attributes=True)
-
-
-####################
-# Forms
-####################
-
-
-class VectorStoreFileModelResponse(BaseModel):
-    id: str
-    user_id: str
-    filename: str
-    meta: dict
-    created_at: int  # timestamp in epoch
-
-
-class VectorStoreFileForm(BaseModel):
-    id: str
-    filename: str
-    meta: dict = {}
 
 
 class VectorStoreFilesTable:
 
-    def insert_new_vector_store_file(self, user_id: str, form_data: VectorStoreFileForm) -> Optional[VectorStoreFileModel]:
-        file = VectorStoreFileModel(
-            **{
-                **form_data.model_dump(),
-                "user_id": user_id,
-                "created_at": int(time.time()),
-            }
-        )
+    def insert_new_vector_store_file(self,
+                                     vector_store_id: str,
+                                     model: VectorStoreFileModel) -> VectorStoreFileModel | None:
 
         try:
-            result = VectorStoreFile(**file.model_dump())
+            chunking_strategy_static_static_chunk_overlap_tokens = None
+            chunking_strategy_static_static_max_chunk_size_tokens = None
+            chunking_strategy_static_type = None
+            chunking_strategy_other_type = None
+            if model.chunking_strategy is not None and model.chunking_strategy.type == "static":
+                chunking_strategy_static_type = "static"
+                chunking_strategy_static_static_max_chunk_size_tokens = model.chunking_strategy.static.max_chunk_size_tokens
+                chunking_strategy_static_static_chunk_overlap_tokens = model.chunking_strategy.static.chunk_overlap_tokens
+            else:
+                chunking_strategy_other_type = "other"
+
+            result = VectorStoreFile(**model.model_dump(exclude={"chunking_strategy", "last_error"}),
+                                     last_error_code=None,
+                                     last_error_message=None,
+                                     chunking_strategy_static_static_chunk_overlap_tokens=chunking_strategy_static_static_chunk_overlap_tokens,
+                                     chunking_strategy_static_static_max_chunk_size_tokens=chunking_strategy_static_static_max_chunk_size_tokens,
+                                     chunking_strategy_static_type=chunking_strategy_static_type,
+                                     chunking_strategy_other_type=chunking_strategy_other_type,
+                                     )
             Session.add(result)
             Session.commit()
             Session.refresh(result)
@@ -75,33 +82,26 @@ class VectorStoreFilesTable:
                 return VectorStoreFileModel.model_validate(result)
             else:
                 return None
+
         except Exception as e:
             print(f"Error creating tool: {e}")
             return None
 
-    def get_vector_store_file_by_id(self, id: str) -> Optional[VectorStoreFileModel]:
-        try:
-            vector_store_file = Session.get(VectorStoreFile, id)
-            return VectorStoreFileModel.model_validate(vector_store_file)
-        except:
-            return None
 
-    def get_vector_store_files(self) -> List[VectorStoreFileModel]:
-        return [VectorStoreFileModel.model_validate(vector_store_file) for vector_store_file in Session.query(VectorStoreFile).all()]
+def get_vector_store_file_by_id(self, id: str) -> Optional[VectorStoreFileModel]:
+    try:
+        vector_store_file = Session.get(VectorStoreFile, id)
+        return VectorStoreFileModel.model_validate(vector_store_file)
+    except:
+        return None
 
-    def delete_vector_store_file_by_id(self, id: str) -> bool:
-        try:
-            Session.query(VectorStoreFile).filter_by(id=id).delete()
-            return True
-        except:
-            return False
 
-    def delete_all_vector_store_files(self) -> bool:
-        try:
-            Session.query(VectorStoreFile).delete()
-            return True
-        except:
-            return False
+def delete_vector_store_file_by_id(self, id: str) -> bool:
+    try:
+        Session.query(VectorStoreFile).filter_by(id=id).delete()
+        return True
+    except:
+        return False
 
 
 VectorStoreFiles = VectorStoreFilesTable()
