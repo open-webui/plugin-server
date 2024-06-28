@@ -10,7 +10,7 @@ from fastapi import (
 from fastapi.middleware.cors import CORSMiddleware
 from openai.types.beta.vector_store import FileCounts
 from openai.types.beta.vector_store_deleted import VectorStoreDeleted
-from openai.types.beta.vector_stores import VectorStoreFile, VectorStoreFileDeleted
+from openai.types.beta.vector_stores import VectorStoreFileDeleted
 from openai.types.beta.vector_stores.vector_store_file import ChunkingStrategyStatic, ChunkingStrategyStaticStatic, \
     ChunkingStrategyOther
 from pydantic import BaseModel
@@ -178,7 +178,7 @@ async def create_vector_store_file(vector_store_id: str,
                                                        static=ChunkingStrategyStaticStatic(
                                                            chunk_overlap_tokens=form_data.chunking_strategy.static.chunk_overlap_tokens,
                                                            max_chunk_size_tokens=form_data.chunking_strategy.static.max_chunk_size_tokens,
-                                               ))
+                                                       ))
         else:
             chunking_strategy = ChunkingStrategyOther()
         model = VectorStoreFileModel(
@@ -191,6 +191,20 @@ async def create_vector_store_file(vector_store_id: str,
             chunking_strategy=chunking_strategy,
         )
         return VectorStoreFiles.insert_new_vector_store_file(vector_store_id, model)
+    except Exception as e:
+        print(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"{str(e)}",
+        )
+
+
+@app.get("/{vector_store_id}/files/{file_id}")
+async def get_vector_store_file(vector_store_id: str,
+                                file_id: str,
+                                user: str = Depends(get_current_user)):
+    try:
+        return VectorStoreFiles.get_vector_store_file_by_id(vector_store_id, file_id)
     except Exception as e:
         print(e)
         raise HTTPException(
